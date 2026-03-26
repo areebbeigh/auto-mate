@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auto-mate"
+version = "0.1.0"
+description = "Home IoT framework with server, bridges, scheduler, and monitoring services."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+server = [
+  "fastapi",
+  "uvicorn[standard]",
+  "pydantic",
+  "PyJWT",
+  "cryptography",
+  "sqlalchemy",
+  "alembic",
+  "paho-mqtt",
+]
+bridges = [
+  "tinytuya",
+  "tapo",
+  "paho-mqtt",
+]
+scheduler = [
+  "paho-mqtt",
+]
+monitoring = [
+  "paho-mqtt",
+]
+
+[project.scripts]
+auto-mate-api = "auto_mate_server.main:run"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["auto_mate_server*", "common*"]
+exclude = ["ui*", "alembic*", "build*"]

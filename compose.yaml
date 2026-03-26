@@ -1,0 +1,21 @@
+services:
+  mqtt:
+    image: eclipse-mosquitto:latest
+    environment:
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto-data:/mosquitto/config
+    command: >
+      sh -c "
+      if [ ! -f /mosquitto/config/passwordfile ]; then
+        mosquitto_passwd -b -c /mosquitto/config/passwordfile ${MQTT_USERNAME} ${MQTT_PASSWORD};
+      else
+        mosquitto_passwd -b /mosquitto/config/passwordfile ${MQTT_USERNAME} ${MQTT_PASSWORD};
+      fi &&
+      exec mosquitto -c /mosquitto/config/mosquitto.conf
+      "
+    ports:
+      - "1883:1883"
+    restart: always

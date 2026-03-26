@@ -1,0 +1,10 @@
+test.py
+build
+*.egg-info
+*.pyc
+__pycache__
+*.db
+*.db-journal
+.env
+ui/dist
+ui/node_modules
