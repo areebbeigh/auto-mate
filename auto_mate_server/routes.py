@@ -3,7 +3,7 @@
 from typing import Annotated
 
 import jwt  # type: ignore[import-not-found]
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, joinedload
@@ -33,10 +33,18 @@ from auto_mate_server.auth import (
     hash_password,
     verify_password,
 )
+from auto_mate_server.service.rpc import MQTTService
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
 
+
+@router.get("/test-mqtt")
+def test(mqtt_service: MQTTService = Depends(MQTTService)):
+    if settings.APP_ENV == "dev":
+        mqtt_service.publish("test/topic", "Hello, world!")
+        return {"message": "Message published"}
+    raise HTTPException(status_code=404)
 
 @router.get("/health", response_model=HealthResponse, tags=["system"])
 def health_check() -> HealthResponse:
