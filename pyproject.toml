@@ -38,5 +38,5 @@ auto-mate-api = "auto_mate_server.main:run"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["auto_mate_server*", "common*"]
+include = ["auto_mate_server*", "common*", "agent*"]
 exclude = ["ui*", "alembic*", "build*"]

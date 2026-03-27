@@ -1,6 +1,7 @@
 """API route definitions."""
 
 from typing import Annotated
+from datetime import datetime
 
 import jwt  # type: ignore[import-not-found]
 from fastapi import APIRouter, Depends, HTTPException, status, Depends
@@ -33,16 +34,19 @@ from auto_mate_server.auth import (
     hash_password,
     verify_password,
 )
-from auto_mate_server.service.rpc import MQTTService
+from common.service.mqtt import get_mqtt_service, MQTTService
+from common.dto.event.integration import IntegrationCreate
+from common.dto.topics import AgentTopics
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 @router.get("/test-mqtt")
-def test(mqtt_service: MQTTService = Depends(MQTTService)):
+def test(mqtt_service: MQTTService = Depends(get_mqtt_service)):
     if settings.APP_ENV == "dev":
-        mqtt_service.publish("test/topic", "Hello, world!")
+        event = IntegrationCreate(id=1, type=IntegrationType.TINYTUYA, access_key="1234567890", access_key_secret="1234567890", username="test", password="test", created_at=datetime.now()).model_dump_json()
+        mqtt_service.publish(AgentTopics.INTEGRATION_CREATE.topic, event)
         return {"message": "Message published"}
     raise HTTPException(status_code=404)
 

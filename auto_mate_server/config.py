@@ -1,14 +1,13 @@
 """Application configuration."""
 
 import os
-import logging.config
 
+from common.config import Settings as CommonSettings
 
-class Settings:
+class Settings(CommonSettings):
     """Simple environment-backed settings."""
 
     APP_NAME = os.getenv("APP_NAME", "auto-mate-api")
-    APP_ENV = os.getenv("APP_ENV", "dev")
     APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
     APP_PORT = int(os.getenv("APP_PORT", "8000"))
     APP_RELOAD = os.getenv("APP_RELOAD", "true").lower() == "true"
@@ -23,31 +22,5 @@ class Settings:
         ).split(",")
         if origin.strip()
     ]
-    MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
-    MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
-    MQTT_USERNAME = os.getenv("MQTT_USERNAME", "admin")
-    MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "admin")
-    MQTT_TOPIC_PREFIX = os.getenv("MQTT_TOPIC_PREFIX", "auto-mate")
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "default": {
-                "format": "%(asctime)s %(module)s:%(funcName)s:%(levelname)s %(message)s"
-            }
-        },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "default",
-                "stream": "ext://sys.stdout"
-            }
-        },
-        "root": {
-            "level": "INFO",
-            "handlers": ["console"]
-        }
-    }
 
 settings = Settings()
-logging.config.dictConfig(settings.LOGGING)
