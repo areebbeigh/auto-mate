@@ -4,11 +4,9 @@ import logging
 import json
 from typing import Callable, Any
 
-import paho.mqtt.client as mqtt
-
 from common.service.mqtt import MQTTService
-from common.dto.topics import AgentTopics
-from common.dto.event.integration import IntegrationCreate, BaseEvent
+from common.dto.topics import TopicRegistry
+from common.dto.event.integration import IntegrationUpdate, BaseEvent
 
 class BaseAgent(abc.ABC):
     def __init__(self, name: str, mqtt_service: MQTTService) -> None:
@@ -17,26 +15,18 @@ class BaseAgent(abc.ABC):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _subscribe_topics(self):
-        self._subscribe(AgentTopics.INTEGRATION_CREATE.topic, self.on_integration_event)
+        self.mqtt.subscribe(TopicRegistry.INTEGRATION_UPDATE, self.on_integration_event)
     
-    def _subscribe(self, topic: str, callback: Callable[[str, BaseEvent], None]):
-        def wrapped(client: mqtt.Client, userdata: Any, message: mqtt.MQTTMessage):
-            klass = AgentTopics.resolve_schema(topic)
-            payload = json.loads(message.payload.decode())
-            if klass:
-                payload = klass(**payload)
-            callback(message.topic, payload)
-
-        wrapped.__name__ = f"wrapped_{callback.__name__}"
-
-        self.mqtt.subscribe(topic, wrapped)
-
     @abc.abstractmethod
-    def on_integration_event(self, topic: str, event: IntegrationCreate):
+    def on_integration_event(self, topic: str, event: IntegrationUpdate):
+        pass
+
+    def on_start(self):
         pass
 
     def start(self):
         self._subscribe_topics()
+        self.on_start()
     
     def loop_forever(self):
         self.mqtt.loop_forever()

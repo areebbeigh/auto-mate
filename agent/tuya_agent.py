@@ -8,7 +8,8 @@ import tinytuya.scanner
 from agent.base import BaseAgent
 from agent.config import settings
 from common.enums import IntegrationType
-from common.dto.event.integration import IntegrationCreate
+from common.dto.topics import TopicRegistry
+from common.dto.event.integration import IntegrationUpdate, ListIntegration
 from common.service.mqtt import MQTTService
 
 
@@ -16,7 +17,7 @@ class TinyTuyaAgent(BaseAgent):
     def __init__(self, name: str, mqtt_service: MQTTService) -> None:
         super().__init__(name, mqtt_service)
 
-    def on_integration_event(self, topic: str, event: IntegrationCreate):
+    def on_integration_event(self, topic: str, event: IntegrationUpdate):
         if event.type != IntegrationType.TINYTUYA:
             return
         
@@ -37,3 +38,6 @@ class TinyTuyaAgent(BaseAgent):
             wizard(assume_yes=True, credentials={"file": credentials_file})
         finally:
             os.chdir(pwd)
+
+    def on_start(self):
+        self.mqtt.publish_event(ListIntegration(request_id="", reply_to=""))

@@ -1,17 +1,32 @@
 """FastAPI app entrypoint."""
-import os
 import logging
+import os
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from auto_mate_server.config import settings
 from auto_mate_server.db.models import Base
 from auto_mate_server.db.session import engine
 from auto_mate_server.routes import router
+from auto_mate_server.factory import get_mqtt_service
+from auto_mate_server.mqtt_handler import MQTTRequestHandler
+from common.service.mqtt import get_mqtt_service_ctx
 
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Keep local/dev setup simple by ensuring tables exist.
+    Base.metadata.create_all(bind=engine)
+    with get_mqtt_service_ctx("fast-api-rpc") as mqtt_service:
+        mqtt_handler = MQTTRequestHandler(mqtt_service)
+        mqtt_handler._subscribe_topics()
+        yield
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -19,6 +34,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -28,11 +44,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router, prefix="/api/v1")
-
-    @app.on_event("startup")
-    def startup() -> None:
-        # Keep local/dev setup simple by ensuring tables exist.
-        Base.metadata.create_all(bind=engine)
 
     return app
 

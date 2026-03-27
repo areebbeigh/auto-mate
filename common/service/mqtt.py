@@ -1,11 +1,12 @@
 import logging
-from typing import Generator, Callable
+import json
+from typing import Generator, Callable, Any, Type
 from contextlib import contextmanager
 
 import paho.mqtt.client as mqtt
 from fastapi import Depends
 
-from common.dto.topics import AgentTopics
+from common.dto.topics import TopicRegistry
 from common.dto.event.base import BaseEvent
 from common.mqtt import get_client
 from auto_mate_server.config import settings
@@ -28,15 +29,26 @@ class MQTTService:
         self.client.publish(topic, payload)
     
     def publish_event(self, event: BaseEvent):
-        topic = AgentTopics.resolve_topic(event)
-        assert topic,f"No topic to publish {event}"
+        topic = TopicRegistry.resolve_topic(event)
+        assert topic, f"No topic to publish {event}"
         self.publish(topic, event.model_dump_json())
 
-    def subscribe(self, topic: str, on_message: Callable[[str, str, str], None]):
+    def _subscribe(self, topic: str, on_message: Callable[[str, str, str], None]):
         topic = self.prefix_topic(topic)
         self.client.subscribe(topic)
         self.client.message_callback_add(topic, on_message)
         logger.info(f"Subscripted to {topic} - {on_message.__name__}")
+
+    def subscribe(self, topic: TopicRegistry, callback: Callable[[str, BaseEvent], None]):
+        def wrapped(client: mqtt.Client, userdata: Any, message: mqtt.MQTTMessage):
+            payload = json.loads(message.payload.decode())
+            klass = topic.schema
+            if klass:
+                payload = klass(**payload)
+            callback(message.topic, payload)
+
+        wrapped.__name__ = f"wrapped_{callback.__name__}"
+        self._subscribe(topic.topic, wrapped)
 
     def add_callback(self, topic: str, on_message: Callable[[str, str, str], None]):
         topic = self.prefix_topic(topic)

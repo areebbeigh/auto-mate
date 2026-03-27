@@ -34,22 +34,22 @@ from auto_mate_server.auth import (
     hash_password,
     verify_password,
 )
-from auto_mate_server.factory import get_mqtt_service
+from auto_mate_server.events import get_update_publisher
 from common.service.mqtt import MQTTService
-from common.dto.event.integration import IntegrationCreate
-from common.dto.topics import AgentTopics
+from common.dto.event.integration import IntegrationUpdate
+from common.dto.topics import TopicRegistry
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-@router.get("/test-mqtt")
-def test(mqtt_service: MQTTService = Depends(get_mqtt_service)):
-    if settings.APP_ENV == "dev":
-        event = IntegrationCreate(id=1, type=IntegrationType.TINYTUYA, access_key="1234567890", access_key_secret="1234567890", username="test", password="test", created_at=datetime.now()).model_dump_json()
-        mqtt_service.publish(AgentTopics.INTEGRATION_CREATE.topic, event)
-        return {"message": "Message published"}
-    raise HTTPException(status_code=404)
+# @router.get("/test-mqtt")
+# def test(mqtt_service: MQTTService = Depends(get_mqtt_service)):
+#     if settings.APP_ENV == "dev":
+#         event = IntegrationUpdate(id=1, type=IntegrationType.TINYTUYA, access_key="1234567890", access_key_secret="1234567890", username="test", password="test", created_at=datetime.now()).model_dump_json()
+#         mqtt_service.publish(AgentTopics.INTEGRATION_CREATE.topic, event)
+#         return {"message": "Message published"}
+#     raise HTTPException(status_code=404)
 
 @router.get("/health", response_model=HealthResponse, tags=["system"])
 def health_check() -> HealthResponse:
@@ -217,7 +217,7 @@ def create_integration(
     payload: IntegrationCreateRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin_user),
-    mqtt: MQTTService = Depends(get_mqtt_service)
+    publish = Depends(get_update_publisher),
 ) -> IntegrationOut:
     target_user_id = payload.user_id if payload.user_id is not None else admin.id
     if payload.user_id is not None:
@@ -237,8 +237,7 @@ def create_integration(
     db.refresh(row)
     owner = db.get(User, row.user_id)
 
-    event = IntegrationCreate(**row.__dict__)
-    mqtt.publish_event(event)
+    publish(row)
     return _integration_to_out(row, owner_email=owner.email if owner else None)
 
 
