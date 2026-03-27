@@ -2,21 +2,30 @@
 
 import logging
 import argparse
+import threading
 
 from agent.config import settings
 from common.service.mqtt import get_mqtt_service_ctx
-from agent.factory import get_agents
+from agent.factory import AGENT_CLASSES
 
 logger = logging.getLogger(__name__)
 
+def _start_agent(klass):
+    with get_mqtt_service_ctx() as mqtt:
+        agent = klass(name=klass.__name__, mqtt_service=mqtt)
+        agent.start()
+        agent.loop_forever()
+
 def start_agents(args):
     print("Starting edge agents...")
-    with get_mqtt_service_ctx() as mqtt:
-        agents = get_agents(mqtt)
-        for agent in agents:
-            agent.start()
-        agents[0].loop_forever()
+    threads = []
+    for klass in AGENT_CLASSES:
+        t = threading.Thread(target=_start_agent, args=[klass])
+        t.start()
+        threads.append(t)
 
+    for t in threads:
+        t.join()
 
 def list_agents(args):
     print("Listing running agents...")

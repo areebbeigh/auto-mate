@@ -31,12 +31,15 @@ class BaseAgent(abc.ABC):
 
         self.mqtt.subscribe(topic, wrapped)
 
+    @abc.abstractmethod
     def on_integration_event(self, topic: str, event: IntegrationCreate):
-        # breakpoint()
-        self.logger.info(event)
+        pass
 
     def start(self):
         self._subscribe_topics()
     
     def loop_forever(self):
         self.mqtt.loop_forever()
+
+    def loop_start(self):
+        self.mqtt.loop_start()
