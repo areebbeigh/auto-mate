@@ -65,6 +65,7 @@ class IntegrationCreateRequest(BaseModel):
     type: str = Field(description="TINYTUYA or TAPO")
     access_key: str | None = Field(default=None, max_length=255)
     access_key_secret: str | None = Field(default=None, max_length=255)
+    device_id: str | None = Field(default=None, max_length=255)
     username: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, max_length=255)
     user_id: int | None = Field(

@@ -9,8 +9,8 @@ from auto_mate_server.config import settings
 logger = logging.getLogger(__name__)
 
 @contextmanager
-def get_client() -> Generator[mqtt.Client]:
-    client = mqtt.Client()
+def get_client(client_id: str) -> Generator[mqtt.Client]:
+    client = mqtt.Client(client_id=client_id)
     client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
     client.connect(settings.MQTT_HOST, settings.MQTT_PORT)
 
@@ -22,6 +22,7 @@ def get_client() -> Generator[mqtt.Client]:
 
     client.on_connect = on_connect
     client.on_message = on_message
+    client.loop_start()
 
     try:
         yield client

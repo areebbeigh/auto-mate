@@ -8,8 +8,10 @@ from pathlib import Path
 
 from cryptography.fernet import Fernet
 
+from auto_mate_server.config import settings
+
 ENV_KEYS = ("AUTO_MATE_SECRET_KEY", "SECRET_KEY")
-DOTFILE_NAME = ".auto-mate"
+DOTFILE_NAME = ".auto-mate-keys"
 FILE_ENTRY_PREFIX = "SECRET_KEY="
 
 
@@ -51,7 +53,7 @@ def load_or_create_fernet_key() -> bytes:
         if raw is not None and raw.strip():
             return raw.strip().encode("ascii")
 
-    dotfile = Path.home() / DOTFILE_NAME
+    dotfile = settings.CONFIG_DIR / DOTFILE_NAME
     if dotfile.is_file():
         try:
             text = dotfile.read_text(encoding="utf-8")

@@ -2,6 +2,7 @@
 
 import os
 import logging.config
+from pathlib import Path
 
 class Settings:
     APP_ENV = os.getenv("APP_ENV", "dev")
@@ -10,12 +11,13 @@ class Settings:
     MQTT_USERNAME = os.getenv("MQTT_USERNAME", "admin")
     MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "admin")
     MQTT_TOPIC_PREFIX = os.getenv("MQTT_TOPIC_PREFIX", "auto-mate")
+    CONFIG_DIR = Path(os.getenv("AUTOMATE_CONFIG_DIR", Path.home() / ".auto-mate/"))
     LOGGING = {
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
             "default": {
-                "format": "%(asctime)s %(module)s:%(funcName)s:%(levelname)s %(message)s"
+                "format": "%(asctime)s %(module)s:%(funcName)s:%(threadName)s:%(levelname)s %(message)s"
             }
         },
         "handlers": {

@@ -34,7 +34,8 @@ from auto_mate_server.auth import (
     hash_password,
     verify_password,
 )
-from common.service.mqtt import get_mqtt_service, MQTTService
+from auto_mate_server.factory import get_mqtt_service
+from common.service.mqtt import MQTTService
 from common.dto.event.integration import IntegrationCreate
 from common.dto.topics import AgentTopics
 
@@ -216,6 +217,7 @@ def create_integration(
     payload: IntegrationCreateRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin_user),
+    mqtt: MQTTService = Depends(get_mqtt_service)
 ) -> IntegrationOut:
     target_user_id = payload.user_id if payload.user_id is not None else admin.id
     if payload.user_id is not None:
@@ -234,6 +236,9 @@ def create_integration(
     db.commit()
     db.refresh(row)
     owner = db.get(User, row.user_id)
+
+    event = IntegrationCreate(**row.__dict__)
+    mqtt.publish_event(event)
     return _integration_to_out(row, owner_email=owner.email if owner else None)
 
 

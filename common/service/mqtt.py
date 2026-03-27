@@ -5,6 +5,8 @@ from contextlib import contextmanager
 import paho.mqtt.client as mqtt
 from fastapi import Depends
 
+from common.dto.topics import AgentTopics
+from common.dto.event.base import BaseEvent
 from common.mqtt import get_client
 from auto_mate_server.config import settings
 
@@ -24,6 +26,11 @@ class MQTTService:
         topic = self.prefix_topic(topic)
         logger.info(f"Publishing to {topic}")
         self.client.publish(topic, payload)
+    
+    def publish_event(self, event: BaseEvent):
+        topic = AgentTopics.resolve_topic(event)
+        assert topic,f"No topic to publish {event}"
+        self.publish(topic, event.model_dump_json())
 
     def subscribe(self, topic: str, on_message: Callable[[str, str, str], None]):
         topic = self.prefix_topic(topic)
@@ -41,14 +48,7 @@ class MQTTService:
     def loop_start(self):
         self.client.loop_start()
 
-
-def _get_mqtt_service():
-    with get_client() as client:
-        yield MQTTService(client)
-
 @contextmanager
-def get_mqtt_service_ctx() -> Generator[MQTTService]:
-    yield from _get_mqtt_service()
-
-def get_mqtt_service():
-    yield from _get_mqtt_service()
+def get_mqtt_service_ctx(client_id: str) -> Generator[MQTTService]:
+    with get_client(client_id) as client:
+        yield MQTTService(client)

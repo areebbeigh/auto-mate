@@ -52,6 +52,7 @@ class Integration(TimestampMixin, Base):
     # access_key, access_key_secret, password are encrypted at rest (see EncryptedText).
     access_key: Mapped[str | None] = mapped_column(EncryptedText(), nullable=True)
     access_key_secret: Mapped[str | None] = mapped_column(EncryptedText(), nullable=True)
+    device_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     password: Mapped[str | None] = mapped_column(EncryptedText(), nullable=True)
     devices: Mapped[list["Device"]] = relationship(back_populates="integration")

@@ -7,5 +7,6 @@ class IntegrationCreate(BaseEvent):
     type: IntegrationType
     access_key: str | None
     access_key_secret: str | None
+    device_id: str | None
     username: str | None
     password: str | None

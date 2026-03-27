@@ -11,6 +11,7 @@ def integration_credentials_for_db(
         return {
             "access_key": payload.access_key.strip() if payload.access_key else None,
             "access_key_secret": payload.access_key_secret.strip() if payload.access_key_secret else None,
+            "device_id": payload.device_id,
             "username": None,
             "password": None,
         }

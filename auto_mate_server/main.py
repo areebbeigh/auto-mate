@@ -1,4 +1,6 @@
 """FastAPI app entrypoint."""
+import os
+import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +10,8 @@ from auto_mate_server.db.models import Base
 from auto_mate_server.db.session import engine
 from auto_mate_server.routes import router
 
+
+logger = logging.getLogger(__name__)
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -38,6 +42,10 @@ app = create_app()
 
 def run() -> None:
     import uvicorn
+
+    if not os.path.exists(settings.CONFIG_DIR):
+        logger.info("Creating config dir")
+        os.makedirs(settings.CONFIG_DIR)
 
     uvicorn.run(
         "auto_mate_server.main:app",

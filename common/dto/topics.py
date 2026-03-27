@@ -1,5 +1,6 @@
 from enum import Enum
 
+from common.dto.event.base import BaseEvent
 from common.dto.event.integration import IntegrationCreate
 
 
@@ -17,6 +18,12 @@ class Base(Enum):
         for t in cls:
             if t.schema and t.topic == topic:
                 return t.schema
+            
+    @classmethod
+    def resolve_topic(cls, event: BaseEvent):
+        for t in cls:
+            if t.schema == event.__class__:
+                return t.topic
 
 
 class AgentTopics(Base):

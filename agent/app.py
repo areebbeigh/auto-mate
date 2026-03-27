@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import logging
+import sys
+import time
 import argparse
 import threading
 
@@ -9,26 +11,38 @@ from common.service.mqtt import get_mqtt_service_ctx
 from agent.factory import AGENT_CLASSES
 
 logger = logging.getLogger(__name__)
+stop_event = threading.Event()
+
+def _loop():
+    while not stop_event.is_set():
+        time.sleep(1)
 
 def _start_agent(klass):
-    with get_mqtt_service_ctx() as mqtt:
-        agent = klass(name=klass.__name__, mqtt_service=mqtt)
-        agent.start()
-        agent.loop_forever()
+    try:
+        with get_mqtt_service_ctx(klass.__name__) as mqtt:
+            agent = klass(name=klass.__name__, mqtt_service=mqtt)
+            agent.start()
+            _loop()
+    finally:
+        logger.info(f"Stopping agent {klass.__name__}")
 
 def start_agents(args):
-    print("Starting edge agents...")
+    logger.info("Starting edge agents...")
     threads = []
     for klass in AGENT_CLASSES:
-        t = threading.Thread(target=_start_agent, args=[klass])
+        t = threading.Thread(name=f"{klass.__name__}Thread", target=_start_agent, args=[klass])
         t.start()
         threads.append(t)
 
     for t in threads:
-        t.join()
+        try:
+            t.join()
+        except KeyboardInterrupt:
+            logger.info(f"Received KeyboardInterrupt")
+            stop_event.set()
 
 def list_agents(args):
-    print("Listing running agents...")
+    logger.info(f"Listing running agents...")
     # TODO: your listing logic
 
 
