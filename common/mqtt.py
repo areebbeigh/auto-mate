@@ -17,11 +17,7 @@ def get_client(client_id: str) -> Generator[mqtt.Client]:
     def on_connect(client, userdata, flags, rc):
         logger.info(f"Connected with result code {rc}")
 
-    def on_message(client, userdata, msg):
-        logger.info(f"Received message on {msg.topic}: {msg.payload.decode()}")
-
     client.on_connect = on_connect
-    client.on_message = on_message
     client.loop_start()
 
     try:

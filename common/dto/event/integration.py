@@ -16,7 +16,7 @@ class IntegrationUpdate(BaseEvent, Integration):
     pass
 
 class ListIntegration(BaseRPCRequest):
-    pass
+    context: dict = {}
 
 
 class ListIntegrationResponse(BaseRPCResponse):

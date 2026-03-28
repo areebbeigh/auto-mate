@@ -7,13 +7,14 @@ import tinytuya.scanner
 
 from agent.base import BaseAgent
 from agent.config import settings
+from common.dto.event.base import BaseRPCResponse
 from common.enums import IntegrationType
 from common.dto.topics import TopicRegistry
-from common.dto.event.integration import IntegrationUpdate, ListIntegration
+from common.dto.event.integration import IntegrationUpdate, ListIntegration, ListIntegrationResponse
 from common.service.mqtt import MQTTService
 
 
-class TinyTuyaAgent(BaseAgent):
+class TuyaAgent(BaseAgent):
     def __init__(self, name: str, mqtt_service: MQTTService) -> None:
         super().__init__(name, mqtt_service)
 
@@ -41,3 +42,6 @@ class TinyTuyaAgent(BaseAgent):
 
     def on_start(self):
         self.mqtt.publish_event(ListIntegration(request_id="", reply_to=""))
+
+    def on_integration_list_response(self, topic: str, event: ListIntegrationResponse):
+        self.logger.info(f"Integration list: {event=}")

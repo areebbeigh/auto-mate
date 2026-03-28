@@ -5,7 +5,7 @@ from fastapi import Depends
 from common.service.mqtt import MQTTService
 from auto_mate_server.factory import get_mqtt_service
 from common.dto.topics import TopicRegistry
-from common.dto.event.integration import ListIntegration
+from common.dto.event.integration import ListIntegration, ListIntegrationResponse
 
 logger = logging.getLogger(__name__)
 
@@ -19,3 +19,4 @@ class MQTTRequestHandler:
 
     def on_list_integrations(self, topic: str, event: ListIntegration):
         logger.info(f"Received {topic=} {event=}")
+        self.mqtt.publish_event(ListIntegrationResponse(request_id=event.request_id, context=event.context, integrations=[]))

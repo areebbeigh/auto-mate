@@ -12,3 +12,4 @@ class BaseRPCRequest(BaseEvent):
 
 class BaseRPCResponse(BaseEvent):
     request_id: str
+    context: dict = {}

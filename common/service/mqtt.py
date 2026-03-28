@@ -13,6 +13,7 @@ from auto_mate_server.config import settings
 
 logger = logging.getLogger(__name__)
 
+EventHandler = Callable[[str, BaseEvent], None]
 
 class MQTTService:
     def __init__(self, client: mqtt.Client):
@@ -37,18 +38,27 @@ class MQTTService:
         topic = self.prefix_topic(topic)
         self.client.subscribe(topic)
         self.client.message_callback_add(topic, on_message)
-        logger.info(f"Subscripted to {topic} - {on_message.__name__}")
+        logger.info(f"Subscribed to {topic} - {on_message.__name__}")
 
-    def subscribe(self, topic: TopicRegistry, callback: Callable[[str, BaseEvent], None]):
+    def _get_wrapped_callback(self, topic: TopicRegistry, callback: Callable[[str, BaseEvent], None], response: bool = False):
         def wrapped(client: mqtt.Client, userdata: Any, message: mqtt.MQTTMessage):
             payload = json.loads(message.payload.decode())
-            klass = topic.schema
+            klass = topic.response_schema if response else topic.schema
             if klass:
                 payload = klass(**payload)
             callback(message.topic, payload)
 
         wrapped.__name__ = f"wrapped_{callback.__name__}"
+        return wrapped
+
+
+    def subscribe(self, topic: TopicRegistry, callback: Callable[[str, BaseEvent], None]):
+        wrapped = self._get_wrapped_callback(topic, callback)
         self._subscribe(topic.topic, wrapped)
+    
+    def subscribe_response(self, topic: TopicRegistry, callback: Callable[[str, BaseEvent], None]):
+        wrapped = self._get_wrapped_callback(topic, callback, True)
+        self._subscribe(topic.response_topic, wrapped)
 
     def add_callback(self, topic: str, on_message: Callable[[str, str, str], None]):
         topic = self.prefix_topic(topic)
