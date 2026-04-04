@@ -1,6 +1,7 @@
 """SQLAlchemy engine and session helpers."""
 
 from collections.abc import Generator
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -31,3 +32,10 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+@contextmanager
+def get_db_ctx() -> Generator[Session]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
