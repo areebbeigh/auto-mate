@@ -15,9 +15,9 @@ class Integration(BaseModel):
 class IntegrationUpdate(BaseEvent, Integration):
     pass
 
-class ListIntegration(BaseRPCRequest):
-    context: dict = {}
+class ListIntegrations(BaseRPCRequest):
+    pass
 
 
-class ListIntegrationResponse(BaseRPCResponse):
-    integrations: list[Integration]
+class ListIntegrationsResponse(BaseRPCResponse):
+    integrations: list[Integration] = []

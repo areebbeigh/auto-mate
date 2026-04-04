@@ -64,6 +64,7 @@ class Integration(TimestampMixin, Base):
 class Device(TimestampMixin, Base):
     __tablename__ = "devices"
     id: Mapped[int] = mapped_column(primary_key=True)
+    device_id: Mapped[str] = mapped_column(String(255), nullable=True)
     integration_id: Mapped[int] = mapped_column(ForeignKey("integrations.id"), nullable=False)
     integration: Mapped["Integration"] = relationship(back_populates="devices")
     name: Mapped[str] = mapped_column(String(255), nullable=False)

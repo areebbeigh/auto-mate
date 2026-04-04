@@ -9,6 +9,7 @@ import threading
 from agent.config import settings
 from common.service.mqtt import get_mqtt_service_ctx
 from agent.factory import AGENT_CLASSES
+from agent.service.device_registry import DeviceRegistry
 
 logger = logging.getLogger(__name__)
 stop_event = threading.Event()
@@ -17,10 +18,10 @@ def _loop():
     while not stop_event.is_set():
         time.sleep(1)
 
-def _start_agent(klass):
+def _start_agent(klass, device_registry):
     try:
         with get_mqtt_service_ctx(klass.__name__) as mqtt:
-            agent = klass(name=klass.__name__, mqtt_service=mqtt)
+            agent = klass(name=klass.__name__, mqtt_service=mqtt, device_registry=device_registry)
             agent.start()
             _loop()
     finally:
@@ -28,9 +29,10 @@ def _start_agent(klass):
 
 def start_agents(args):
     logger.info("Starting edge agents...")
+    device_registry = DeviceRegistry()
     threads = []
     for klass in AGENT_CLASSES:
-        t = threading.Thread(name=f"{klass.__name__}Thread", target=_start_agent, args=[klass])
+        t = threading.Thread(name=f"{klass.__name__}Thread", target=_start_agent, args=[klass, device_registry])
         t.start()
         threads.append(t)
 

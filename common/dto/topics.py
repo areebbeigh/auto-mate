@@ -1,10 +1,16 @@
 from enum import Enum
 
 from common.dto.event.base import BaseEvent
-from common.dto.event.integration import IntegrationUpdate, ListIntegration, ListIntegrationResponse
+from common.dto.event.integration import (
+    IntegrationUpdate,
+    ListIntegrations,
+    ListIntegrationsResponse,
+)
+from common.dto.event.device import ListDevices, ListDevicesResponse
 
 RPC_QUERY_PREFIX = "rpc/query"
 RPC_RESPONSE_PREFIX = "rpc/response"
+
 
 class BaseTopicRegistry(Enum):
     @property
@@ -14,11 +20,11 @@ class BaseTopicRegistry(Enum):
     @property
     def schema(self):
         return self.value[1]
-    
+
     @property
     def response_schema(self):
         return self.value[2]
-    
+
     @property
     def response_topic(self):
         if not self.response_schema:
@@ -32,7 +38,7 @@ class BaseTopicRegistry(Enum):
                 return t.schema
             if t.response_topic == topic:
                 return t.response_schema
-            
+
     @classmethod
     def resolve_topic(cls, event: BaseEvent):
         for t in cls:
@@ -51,4 +57,9 @@ class TopicRegistry(BaseTopicRegistry):
     DEVICE_STATE_CHANGE = ("device/state/change", None, None)
 
     # FastAPI topics
-    LIST_INTEGRATIONS = (f"{RPC_QUERY_PREFIX}/integration/list", ListIntegration, ListIntegrationResponse)
+    LIST_INTEGRATIONS = (
+        f"{RPC_QUERY_PREFIX}/integration/list",
+        ListIntegrations,
+        ListIntegrationsResponse,
+    )
+    LIST_DEVICES = (f"{RPC_QUERY_PREFIX}/device/list", ListDevices, ListDevicesResponse)

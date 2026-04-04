@@ -1,26 +1,35 @@
 """Agents always run on the edge layer (LAN) and operate between IoT devices and control-pane (FastAPI server)"""
+
 import abc
 import logging
 
 from common.service.mqtt import MQTTService, EventHandler
 from common.dto.topics import TopicRegistry
-from common.dto.event.integration import IntegrationUpdate, ListIntegrationResponse
+from common.dto.event.base import BaseRPCRequest
+from common.dto.event.integration import IntegrationUpdate, ListIntegrationsResponse
+from agent.service.device_registry import DeviceRegistry
 
 
 def subscribe(topic: TopicRegistry, is_response_handler: bool = False):
     def decorator(callback: EventHandler):
-        callback._mqtt = {
-            "topic": topic,
-            "is_response_handler": is_response_handler
-        }
+        callback._mqtt = {"topic": topic, "is_response_handler": is_response_handler}
         return callback
+
     return decorator
 
+
 class BaseAgent(abc.ABC):
-    def __init__(self, name: str, mqtt_service: MQTTService) -> None:
+    def __init__(
+        self,
+        name: str,
+        mqtt_service: MQTTService,
+        device_registry: DeviceRegistry,
+    ) -> None:
         self.name = name
         self.mqtt = mqtt_service
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.device_registry = device_registry
+        self.response_suffix = f"{self.__class__.__name__}"
 
     def _subscribe_topics(self):
         meta = {}
@@ -31,13 +40,15 @@ class BaseAgent(abc.ABC):
 
         for attr_name in dir(self):
             attr = getattr(self, attr_name)
-            subscribe_metadata = attr._mqtt if hasattr(attr, "_mqtt") else meta.get(attr_name)
+            subscribe_metadata = (
+                attr._mqtt if hasattr(attr, "_mqtt") else meta.get(attr_name)
+            )
 
             if subscribe_metadata:
                 topic = subscribe_metadata["topic"]
                 is_response_handler = subscribe_metadata["is_response_handler"]
                 if is_response_handler:
-                    self.mqtt.subscribe_response(topic, attr)
+                    self.mqtt.subscribe_response(topic, attr, self.response_suffix)
                 else:
                     self.mqtt.subscribe(topic, attr)
 
@@ -45,18 +56,23 @@ class BaseAgent(abc.ABC):
     @abc.abstractmethod
     def on_integration_event(self, topic: str, event: IntegrationUpdate):
         pass
-    
+
     @subscribe(TopicRegistry.LIST_INTEGRATIONS, is_response_handler=True)
-    def on_integration_list_response(self, topic: str, event: ListIntegrationResponse):
+    def on_integration_list_response(self, topic: str, event: ListIntegrationsResponse):
         pass
 
     def on_start(self):
         pass
 
+    def publish_request(self, request: BaseRPCRequest):
+        if not request.response_suffix:
+            request.response_suffix = self.response_suffix
+        self.mqtt.publish_event(request)
+
     def start(self):
         self._subscribe_topics()
         self.on_start()
-    
+
     def loop_forever(self):
         self.mqtt.loop_forever()
 

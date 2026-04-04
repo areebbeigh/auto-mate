@@ -40,3 +40,8 @@ auto-mate-api = "auto_mate_server.main:run"
 where = ["."]
 include = ["auto_mate_server*", "common*", "agent*"]
 exclude = ["ui*", "alembic*", "build*"]
+
+[dependency-groups]
+dev = [
+    "black>=26.3.1",
+]
