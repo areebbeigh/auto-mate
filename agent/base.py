@@ -3,11 +3,13 @@
 import abc
 import logging
 
+from common.enums import IntegrationType
 from common.mqtt import MQTTSubscribeMixin
 from common.service.mqtt import MQTTService
 from common.dto.event.base import BaseRPCRequest
-from common.dto.event.integration import IntegrationUpdate, ListIntegrationsResponse
-from agent.service.device_registry import DeviceRegistry
+from common.dto.event.integration import IntegrationUpdate
+from common.dto.event.device import Device
+from agent.service.device_registry import DeviceRegistry, RegistryDevice
 
 
 class BaseAgent(abc.ABC, MQTTSubscribeMixin):
@@ -27,6 +29,10 @@ class BaseAgent(abc.ABC, MQTTSubscribeMixin):
     def on_integration_event(self, topic: str, event: IntegrationUpdate):
         pass
 
+    @abc.abstractmethod
+    def integration_type(self) -> IntegrationType:
+        pass
+
     def on_start(self):
         pass
 
@@ -34,6 +40,14 @@ class BaseAgent(abc.ABC, MQTTSubscribeMixin):
         if not request.response_suffix:
             request.response_suffix = self.response_suffix
         self.mqtt.publish_event(request)
+
+    def add_device(self, device: Device):
+        self.device_registry.register_device(
+            RegistryDevice(
+                **device.model_dump(),
+                integration_type=self.integration_type(),
+            )
+        )
 
     def start(self):
         self._subscribe_topics()

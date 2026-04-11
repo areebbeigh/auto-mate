@@ -10,6 +10,7 @@ class Integration(BaseModel):
     device_id: str | None
     username: str | None
     password: str | None
+    user_id: int | None
 
 
 class IntegrationUpdate(BaseEvent, Integration):

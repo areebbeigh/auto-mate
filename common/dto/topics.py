@@ -6,7 +6,11 @@ from common.dto.event.integration import (
     ListIntegrations,
     ListIntegrationsResponse,
 )
-from common.dto.event.device import ListDevices, ListDevicesResponse
+from common.dto.event.device import (
+    ListDevices,
+    ListDevicesResponse,
+    CreateOrUpdateDevicesRequest,
+)
 
 RPC_QUERY_PREFIX = "rpc/query"
 RPC_RESPONSE_PREFIX = "rpc/response"
@@ -62,4 +66,13 @@ class TopicRegistry(BaseTopicRegistry):
         ListIntegrations,
         ListIntegrationsResponse,
     )
-    LIST_DEVICES = (f"{RPC_QUERY_PREFIX}/device/list", ListDevices, ListDevicesResponse)
+    LIST_DEVICES = (
+        f"{RPC_QUERY_PREFIX}/device/list",
+        ListDevices,
+        ListDevicesResponse,
+    )
+    CREATE_OR_UPDATE_DEVICE = (
+        f"{RPC_QUERY_PREFIX}/device/create-or-update",
+        CreateOrUpdateDevicesRequest,
+        ListDevicesResponse,
+    )

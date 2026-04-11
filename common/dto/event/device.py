@@ -4,14 +4,14 @@ from common.enums import IntegrationType
 
 
 class Device(BaseModel):
-    id: int
+    id: int | None
     device_id: str
     name: str
     last_known_ip: str
     payload: dict
     controllable: bool
     integration_id: int
-    user_id: int
+    user_id: int | None = None
     payload: dict
 
 
@@ -20,4 +20,8 @@ class ListDevices(BaseRPCRequest):
 
 
 class ListDevicesResponse(BaseRPCResponse):
+    devices: list[Device] = []
+
+
+class CreateOrUpdateDevicesRequest(BaseRPCRequest):
     devices: list[Device] = []

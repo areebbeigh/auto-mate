@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 from fastapi import Depends
 from sqlalchemy import select
@@ -16,10 +17,13 @@ from common.dto.event.device import (
     ListDevices,
     ListDevicesResponse,
     Device as DeviceOut,
+    CreateOrUpdateDevicesRequest,
 )
 from auto_mate_server.factory import get_mqtt_service
 from auto_mate_server.db.session import get_db_ctx
 from auto_mate_server.db.models import Integration, Device
+from auto_mate_server.db.repo import get_repos
+from auto_mate_server.db.repo.device import DeviceRepo
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +51,11 @@ class MQTTRequestHandler(MQTTSubscribeMixin):
 
     @subscribe(TopicRegistry.LIST_DEVICES)
     def on_list_devices(self, topic: str, event: ListDevices):
-        with get_db_ctx() as db:
-            devices = db.scalars(
-                select(Device)
-                .join(Device.integration)
-                .where(Integration.type == event.integration_type)
+        with get_repos(DeviceRepo) as (_, repo):
+            repo = cast(DeviceRepo, repo)
+            devices = repo.filter(
+                Integration.type == event.integration_type,
+                joins=[Device.integration],
             )
 
         self.mqtt.publish_response(
@@ -62,3 +66,12 @@ class MQTTRequestHandler(MQTTSubscribeMixin):
             ),
             event.response_suffix,
         )
+
+    @subscribe(TopicRegistry.CREATE_OR_UPDATE_DEVICE)
+    def on_create_or_update_devices(
+        self, topic: str, event: CreateOrUpdateDevicesRequest
+    ):
+        with get_repos(DeviceRepo) as (db, device_repo):
+            logger.info(f"{db=} {device_repo=}")
+            for device in event.devices:
+                logger.info(device)
