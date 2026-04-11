@@ -1,4 +1,5 @@
 """FastAPI app entrypoint."""
+
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -63,9 +64,12 @@ def run() -> None:
         host=settings.APP_HOST,
         port=settings.APP_PORT,
         reload=settings.APP_RELOAD,
+        reload_dirs=[
+            settings.BASE_DIR / "auto_mate_server",
+            settings.BASE_DIR / "common",
+        ],
     )
 
 
 if __name__ == "__main__":
     run()
-

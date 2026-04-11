@@ -12,6 +12,7 @@ class Settings:
     MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "admin")
     MQTT_TOPIC_PREFIX = os.getenv("MQTT_TOPIC_PREFIX", "auto-mate")
     CONFIG_DIR = Path(os.getenv("AUTOMATE_CONFIG_DIR", Path.home() / ".auto-mate/"))
+    BASE_DIR = Path(__file__).parent.parent
     LOGGING = {
         "version": 1,
         "disable_existing_loggers": False,

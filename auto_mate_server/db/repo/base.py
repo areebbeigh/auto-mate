@@ -1,5 +1,5 @@
 import abc
-from typing import Generic, TypeVar, Type
+from typing import Generic, TypeVar, Type, Iterable
 from contextlib import contextmanager
 
 from sqlalchemy.orm import Session
@@ -19,12 +19,15 @@ class BaseRepo(Generic[T]):
     def get_model(cls) -> type[T]:
         pass
 
-    def filter(self, clause, joins=[]) -> list[T]:
+    def filter(self, clause, joins=[]):
         expr = select(self.get_model())
         if joins:
             for j in joins:
                 expr = expr.join(j)
-        if clause:
+        if clause is not None:
             expr = expr.where(clause)
 
         return self.session.scalars(expr)
+
+    def insert(self, row: T):
+        self.session.add(row)
