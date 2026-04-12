@@ -25,3 +25,7 @@ class ListDevicesResponse(BaseRPCResponse):
 
 class CreateOrUpdateDevicesRequest(BaseRPCRequest):
     devices: list[Device] = []
+
+
+class DeviceUpdate(BaseEvent, Device):
+    pass

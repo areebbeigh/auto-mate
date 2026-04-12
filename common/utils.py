@@ -1,11 +1,22 @@
+import logging
+from typing import get_type_hints
+
+
+logger = logging.getLogger(__name__)
+
+
 def create_model(klass, src):
     src_dict = vars(src)
 
-    kwargs = {
-        k: v for k, v in src_dict.items() if k in getattr(klass, "__annotations__", {})
-    }
+    attrs = get_type_hints(klass)
+    kwargs = {k: v for k, v in src_dict.items() if k in attrs}
 
-    return klass(**kwargs)
+    try:
+        return klass(**kwargs)
+    except Exception:
+        logger.exception(
+            f"Failed to create instance of {klass} from {src} with {kwargs=} {attrs=} {src_dict=}"
+        )
 
 
 def common_kwargs(klass, src: dict, exclude=[]):
@@ -17,7 +28,7 @@ def common_kwargs(klass, src: dict, exclude=[]):
     return kwargs
 
 
-def copy_attrs(src, dst, exclude = []):
+def copy_attrs(src, dst, exclude=[]):
     for attr in dir(src):
         # skip private / dunder attributes
         if attr.startswith("_") or attr in exclude:

@@ -24,13 +24,14 @@ from common.dto.event.device import (
     ListDevices,
     ListDevicesResponse,
     CreateOrUpdateDevicesRequest,
-    Device,
+    DeviceUpdate
 )
 
 
 class TuyaAgent(BaseAgent):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.integrations = {}
 
     def integration_type(self) -> IntegrationType:
         return IntegrationType.TINYTUYA
@@ -42,11 +43,19 @@ class TuyaAgent(BaseAgent):
 
         self.logger.info(f"Integration {event.id} updated")
         self._init_integration(event)
+    
+    @subscribe(TopicRegistry.DEVICE_UPDATE)
+    def on_device_update(self, topic: str, event: DeviceUpdate):
+        if event.integration_id not in self.integrations:
+            return
+        
+        self.add_device(event)
 
     @subscribe(TopicRegistry.LIST_INTEGRATIONS, is_response_handler=True)
     def on_integration_list(self, topic: str, event: ListIntegrationsResponse):
         self.logger.info(f"Received integration list")
         for integration in event.integrations:
+            self.integrations[integration.id] = integration
             try:
                 self._init_integration(integration)
                 time.sleep(3)
@@ -106,15 +115,17 @@ class TuyaAgent(BaseAgent):
 
             if not devices:
                 return
-            
+
             device_objs = []
             for d in devices:
                 try:
-                    device_objs.append(tuya_dict_to_device(
-                        d,
-                        integration_id=integration.id,
-                        user_id=integration.user_id,
-                    ))
+                    device_objs.append(
+                        tuya_dict_to_device(
+                            d,
+                            integration_id=integration.id,
+                            user_id=integration.user_id,
+                        )
+                    )
                 except Exception:
                     self.logger.exception(f"Could not parse {d} into Device")
                     continue

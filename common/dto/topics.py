@@ -10,6 +10,7 @@ from common.dto.event.device import (
     ListDevices,
     ListDevicesResponse,
     CreateOrUpdateDevicesRequest,
+    DeviceUpdate,
 )
 
 RPC_QUERY_PREFIX = "rpc/query"
@@ -56,7 +57,7 @@ class TopicRegistry(BaseTopicRegistry):
     # Agent topics
     INTEGRATION_UPDATE = ("integration/update", IntegrationUpdate, None)
     INTEGRATION_DELETE = ("integration/delete", None, None)
-    DEVICE_UPDATE = ("device/update", None, None)
+    DEVICE_UPDATE = ("device/update", DeviceUpdate, None)
     DEVICE_DELETE = ("device/delete", None, None)
     DEVICE_STATE_CHANGE = ("device/state/change", None, None)
 

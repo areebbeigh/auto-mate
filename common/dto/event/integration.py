@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+
 from common.dto.event.base import BaseEvent, BaseRPCRequest, BaseRPCResponse
 from common.enums import IntegrationType
 

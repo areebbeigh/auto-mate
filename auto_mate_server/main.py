@@ -14,6 +14,7 @@ from auto_mate_server.routes import router
 from auto_mate_server.factory import get_mqtt_service
 from auto_mate_server.mqtt_handler import MQTTRequestHandler
 from common.service.mqtt import get_mqtt_service_ctx
+from auto_mate_server.events import get_update_publisher
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
     # Keep local/dev setup simple by ensuring tables exist.
     Base.metadata.create_all(bind=engine)
     with get_mqtt_service_ctx("fast-api-rpc") as mqtt_service:
-        mqtt_handler = MQTTRequestHandler(mqtt_service)
+        mqtt_handler = MQTTRequestHandler(mqtt_service, get_update_publisher(mqtt_service))
         mqtt_handler._subscribe_topics()
         yield
 

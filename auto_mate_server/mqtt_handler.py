@@ -1,7 +1,6 @@
 import logging
 from typing import cast
 
-from fastapi import Depends
 from sqlalchemy import select
 
 from common.utils import create_model, copy_attrs
@@ -24,13 +23,19 @@ from auto_mate_server.db.session import get_db_ctx
 from auto_mate_server.db.models import Integration, Device
 from auto_mate_server.db.repo import get_repos
 from auto_mate_server.db.repo.device import DeviceRepo
+from auto_mate_server.events import UpdatePublisher
 
 logger = logging.getLogger(__name__)
 
 
 class MQTTRequestHandler(MQTTSubscribeMixin):
-    def __init__(self, mqtt_service: MQTTService = Depends(get_mqtt_service)) -> None:
+    def __init__(
+        self,
+        mqtt_service: MQTTService,
+        update_publisher: UpdatePublisher,
+    ) -> None:
         self.mqtt = mqtt_service
+        self.update_publisher = update_publisher
 
     @subscribe(TopicRegistry.LIST_INTEGRATIONS)
     def on_list_integrations(self, topic: str, event: ListIntegrations):
@@ -76,6 +81,8 @@ class MQTTRequestHandler(MQTTSubscribeMixin):
 
             with session.begin():
                 update_count, insert_count = 0, 0
+                devices = []
+
                 for device in event.devices:
                     existing_device = device_repo.filter(
                         (Device.id == device.id)
@@ -83,19 +90,19 @@ class MQTTRequestHandler(MQTTSubscribeMixin):
                         if device.id
                         else Device.device_id == device.device_id
                     ).first()
-                    if not existing_device:
-                        try:
+                    try:
+                        if not existing_device:
                             updated_device = create_model(Device, device)
                             device_repo.insert(updated_device)
                             insert_count += 1
-                        except Exception:
-                            logger.exception(f"Error while creating device")
-                    else:
-                        try:
+                        else:
                             copy_attrs(device, existing_device, ["id"])
                             updated_device = existing_device
                             update_count += 1
-                        except Exception:
-                            logger.exception(f"Error while updating device")
+                        devices.append(updated_device)
+                    except Exception:
+                        logger.exception(f"Error while creating/updating device")
 
-            logger.info(f"{update_count=}, {insert_count=}")
+                logger.info(f"{update_count=}, {insert_count=}")
+                for device in devices:
+                    self.update_publisher(device)

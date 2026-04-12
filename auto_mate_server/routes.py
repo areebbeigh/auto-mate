@@ -35,9 +35,6 @@ from auto_mate_server.auth import (
     verify_password,
 )
 from auto_mate_server.events import get_update_publisher
-from common.service.mqtt import MQTTService
-from common.dto.event.integration import IntegrationUpdate
-from common.dto.topics import TopicRegistry
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -261,6 +258,7 @@ def update_integration(
     payload: IntegrationCreateRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin_user),
+    publish = Depends(get_update_publisher)
 ) -> IntegrationOut:
     row = db.get(Integration, integration_id)
     if row is None:
@@ -284,6 +282,7 @@ def update_integration(
     row.password = creds["password"]
     db.commit()
     db.refresh(row)
+    publish(row)
     owner = db.get(User, row.user_id)
     return _integration_to_out(row, owner_email=owner.email if owner else None)
 
@@ -330,6 +329,7 @@ def create_device(
     payload: DeviceCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    publish = Depends(get_update_publisher)
 ) -> DeviceOut:
     integration = db.get(Integration, payload.integration_id)
     if integration is None:
@@ -347,6 +347,7 @@ def create_device(
     )
     db.add(row)
     db.commit()
+    publish(row)
     db.refresh(row)
     return DeviceOut.model_validate(row)
 

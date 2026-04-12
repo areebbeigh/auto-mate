@@ -48,6 +48,7 @@ class BaseAgent(abc.ABC, MQTTSubscribeMixin):
                 integration_type=self.integration_type(),
             )
         )
+        self.logger.info(f"Registered device {device.id}")
 
     def start(self):
         self._subscribe_topics()
