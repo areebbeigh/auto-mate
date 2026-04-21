@@ -11,7 +11,8 @@ from tinytuya.wizard import wizard
 from agent.base import BaseAgent
 from agent.config import settings
 from agent.transformers import tuya_dict_to_device
-from common.enums import IntegrationType
+from common.enums import IntegrationType, DeviceAction
+from common.utils import to_supported_actions
 from common.mqtt import subscribe
 from common.dto.topics import TopicRegistry
 from common.dto.event.integration import (
@@ -24,7 +25,7 @@ from common.dto.event.device import (
     ListDevices,
     ListDevicesResponse,
     CreateOrUpdateDevicesRequest,
-    DeviceUpdate
+    DeviceUpdate,
 )
 
 
@@ -43,12 +44,12 @@ class TuyaAgent(BaseAgent):
 
         self.logger.info(f"Integration {event.id} updated")
         self._init_integration(event)
-    
+
     @subscribe(TopicRegistry.DEVICE_UPDATE)
     def on_device_update(self, topic: str, event: DeviceUpdate):
         if event.integration_id not in self.integrations:
             return
-        
+
         self.add_device(event)
 
     @subscribe(TopicRegistry.LIST_INTEGRATIONS, is_response_handler=True)
@@ -124,6 +125,10 @@ class TuyaAgent(BaseAgent):
                             d,
                             integration_id=integration.id,
                             user_id=integration.user_id,
+                            supported_actions=to_supported_actions(
+                                DeviceAction.TOGGLE_ON_OFF,
+                                DeviceAction.SET_COLOR,
+                            ),
                         )
                     )
                 except Exception:

@@ -103,6 +103,7 @@ class DeviceOut(BaseModel):
     last_known_ip: str
     payload: dict
     controllable: bool
+    supported_actions: str
 
     model_config = {"from_attributes": True}
 

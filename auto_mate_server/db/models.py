@@ -12,7 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from common.enums import IntegrationType
+from common.enums import IntegrationType, DeviceAction
 from auto_mate_server.db.encrypted_types import EncryptedText
 
 
@@ -72,6 +72,7 @@ class Device(TimestampMixin, Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     controllable: Mapped[bool] = mapped_column(Boolean, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    supported_actions: Mapped[String] = mapped_column(String(255), nullable=False, server_default="")
     user: Mapped["User"] = relationship(back_populates="devices")
 
     def __repr__(self) -> str:

@@ -1,6 +1,8 @@
 import logging
 from typing import get_type_hints
 
+from common.enums import DeviceAction
+
 
 logger = logging.getLogger(__name__)
 
@@ -42,3 +44,14 @@ def copy_attrs(src, dst, exclude=[]):
         # only copy if dst has the attribute
         if hasattr(dst, attr):
             setattr(dst, attr, value)
+
+
+def to_supported_actions(*args: list[DeviceAction]):
+    return ",".join([a.name for a in args])
+
+
+def to_device_actions(supported_actions: str) -> list[DeviceAction]:
+    actions = []
+    for action in supported_actions.split(","):
+        actions.append(DeviceAction(action))
+    return actions

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom"
 
 import { Button, buttonVariants } from "@/components/ui/button"
 import { DashboardLayout } from "@/dashboard/DashboardLayout"
+import { DevicesPage } from "@/dashboard/DevicesPage"
 import { IntegrationsPage } from "@/dashboard/IntegrationsPage"
 import { PlaceholderPage } from "@/dashboard/PlaceholderPage"
 import { UsersPage } from "@/dashboard/UsersPage"
@@ -281,7 +282,7 @@ function App() {
       >
         <Route index element={<Navigate to="integrations" replace />} />
         <Route path="integrations" element={<IntegrationsPage />} />
-        <Route path="devices" element={<PlaceholderPage title="Devices" />} />
+        <Route path="devices" element={<DevicesPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="schedules" element={<PlaceholderPage title="Schedules" />} />
         <Route path="logs" element={<PlaceholderPage title="Logs" />} />

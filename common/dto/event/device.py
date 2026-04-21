@@ -13,6 +13,7 @@ class Device(BaseModel):
     integration_id: int
     user_id: int | None = None
     payload: dict
+    supported_actions: str
 
 
 class ListDevices(BaseRPCRequest):
