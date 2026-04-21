@@ -1,18 +1,14 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react"
+import { type SubmitEventHandler, useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
 import type { DashboardSession } from "@/dashboard/DashboardLayout"
 import { Button } from "@/components/ui/button"
-import { apiPath, authHeaders } from "@/lib/api"
-
-type IntegrationRow = {
-  id: number
-  user_id: number
-  type: string
-  username: string | null
-  access_keys_configured: boolean
-  owner_email: string | null
-}
+import {
+  type IntegrationRow,
+  useDeleteIntegrationMutation,
+  useIntegrationMutation,
+  useIntegrationsQuery,
+} from "@/lib/query/integrations"
 
 type FormState = {
   type: "TINYTUYA" | "TAPO"
@@ -36,39 +32,14 @@ export function IntegrationsPage() {
   const { session } = useOutletContext<{ session: DashboardSession }>()
   const isAdmin = session.is_admin
 
-  const [rows, setRows] = useState<IntegrationRow[]>([])
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
-  const [saving, setSaving] = useState(false)
-
-  const load = useCallback(async () => {
-    setError(null)
-    const response = await fetch(apiPath("/api/v1/integrations"), {
-      headers: { ...authHeaders() },
-    })
-    if (!response.ok) {
-      throw new Error(`Failed to load integrations (${response.status})`)
-    }
-    const data = (await response.json()) as IntegrationRow[]
-    setRows(data)
-  }, [])
-
-  useEffect(() => {
-    const run = async () => {
-      setLoading(true)
-      try {
-        await load()
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load")
-      } finally {
-        setLoading(false)
-      }
-    }
-    void run()
-  }, [load])
+  const integrationsQuery = useIntegrationsQuery()
+  const saveMutation = useIntegrationMutation()
+  const deleteMutation = useDeleteIntegrationMutation()
+  const rows = integrationsQuery.data ?? []
 
   const openCreate = () => {
     setError(null)
@@ -97,55 +68,26 @@ export function IntegrationsPage() {
     setForm(emptyForm())
   }
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit: SubmitEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault()
-    setSaving(true)
     setError(null)
-    try {
-      const body: Record<string, unknown> = { type: form.type }
-      if (form.type === "TINYTUYA") {
-        body.access_key = form.access_key
-        body.access_key_secret = form.access_key_secret
-      } else {
-        body.username = form.username
-        body.password = form.password
-      }
-      if (isAdmin && form.user_id.trim() !== "") {
-        body.user_id = Number.parseInt(form.user_id, 10)
-      }
+    const body: Record<string, unknown> = { type: form.type }
+    if (form.type === "TINYTUYA") {
+      body.access_key = form.access_key
+      body.access_key_secret = form.access_key_secret
+    } else {
+      body.username = form.username
+      body.password = form.password
+    }
+    if (isAdmin && form.user_id.trim() !== "") {
+      body.user_id = Number.parseInt(form.user_id, 10)
+    }
 
-      const url =
-        editingId === null
-          ? apiPath("/api/v1/integrations")
-          : apiPath(`/api/v1/integrations/${editingId}`)
-      const response = await fetch(url, {
-        method: editingId === null ? "POST" : "PUT",
-        headers: {
-          ...authHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        const detail = payload.detail as unknown
-        let msg = `Request failed (${response.status})`
-        if (typeof detail === "string") {
-          msg = detail
-        } else if (Array.isArray(detail)) {
-          msg = detail
-            .map((d: { msg?: string }) => d.msg ?? "")
-            .filter(Boolean)
-            .join(", ")
-        }
-        throw new Error(msg)
-      }
-      await load()
+    try {
+      await saveMutation.mutateAsync({ targetEditingId: editingId, body })
       closeModal()
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed")
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -154,16 +96,11 @@ export function IntegrationsPage() {
       return
     }
     setError(null)
-    const response = await fetch(apiPath(`/api/v1/integrations/${id}`), {
-      method: "DELETE",
-      headers: { ...authHeaders() },
-    })
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}))
-      setError(typeof payload.detail === "string" ? payload.detail : "Delete failed")
-      return
+    try {
+      await deleteMutation.mutateAsync(id)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed")
     }
-    await load()
   }
 
   const credentialSummary = (row: IntegrationRow) => {
@@ -193,8 +130,14 @@ export function IntegrationsPage() {
         <p className="text-sm text-destructive">{error}</p>
       ) : null}
 
-      {loading ? (
+      {integrationsQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : integrationsQuery.isError ? (
+        <p className="text-sm text-destructive">
+          {integrationsQuery.error instanceof Error
+            ? integrationsQuery.error.message
+            : "Failed to load"}
+        </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[640px] text-left text-sm">
@@ -365,8 +308,8 @@ export function IntegrationsPage() {
                 <Button type="button" variant="outline" onClick={closeModal}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Saving…" : "Save"}
+                <Button type="submit" disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? "Saving…" : "Save"}
                 </Button>
               </div>
             </form>

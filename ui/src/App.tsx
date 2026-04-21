@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react"
+import { type SubmitEventHandler, useEffect, useMemo, useState } from "react"
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom"
 
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -6,6 +6,7 @@ import { DashboardLayout } from "@/dashboard/DashboardLayout"
 import { IntegrationsPage } from "@/dashboard/IntegrationsPage"
 import { PlaceholderPage } from "@/dashboard/PlaceholderPage"
 import { UsersPage } from "@/dashboard/UsersPage"
+import { apiPath, apiRequest } from "@/lib/api"
 
 type BootstrapResponse = { is_setup: boolean }
 type AuthResponse = {
@@ -33,8 +34,6 @@ function App() {
   const [loginPassword, setLoginPassword] = useState("")
   const navigate = useNavigate()
 
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
-
   const authHeaders = useMemo(
     () =>
       session
@@ -47,11 +46,7 @@ function App() {
 
   const fetchBootstrap = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/bootstrap`)
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`)
-      }
-      const data = (await response.json()) as BootstrapResponse
+      const data = await apiRequest<BootstrapResponse>("/api/v1/bootstrap")
       setBootstrapMode(data.is_setup ? "login" : "setup")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error")
@@ -69,18 +64,14 @@ function App() {
   }
 
   const restoreSession = async (token: string) => {
-    const response = await fetch(`${apiBaseUrl}/api/v1/auth/me`, {
+    const auth = await apiRequest<AuthResponse>("/api/v1/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     })
-    if (!response.ok) {
-      throw new Error("Session expired. Please login again.")
-    }
-    const auth = (await response.json()) as AuthResponse
     persistSession(auth)
     navigate("/dashboard", { replace: true })
   }
 
-  const submitSetup = async (event: FormEvent<HTMLFormElement>) => {
+  const submitSetup: SubmitEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault()
     if (setupPassword !== setupConfirmPassword) {
       setError("Passwords do not match.")
@@ -89,16 +80,10 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/setup-first-user`, {
+      const data = await apiRequest<AuthResponse>("/api/v1/auth/setup-first-user", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: setupEmail, password: setupPassword }),
+        body: { email: setupEmail, password: setupPassword },
       })
-      const payload = await response.json()
-      if (!response.ok) {
-        throw new Error(payload.detail ?? `Request failed with status ${response.status}`)
-      }
-      const data = payload as AuthResponse
       persistSession(data)
       navigate("/dashboard", { replace: true })
       setSetupPassword("")
@@ -110,21 +95,15 @@ function App() {
     }
   }
 
-  const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
+  const submitLogin: SubmitEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
+      const data = await apiRequest<AuthResponse>("/api/v1/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        body: { email: loginEmail, password: loginPassword },
       })
-      const payload = await response.json()
-      if (!response.ok) {
-        throw new Error(payload.detail ?? `Request failed with status ${response.status}`)
-      }
-      const data = payload as AuthResponse
       persistSession(data)
       setLoginPassword("")
       navigate("/dashboard", { replace: true })
@@ -256,10 +235,9 @@ function App() {
                       try {
                         await fetchBootstrap()
                         if (session) {
-                          const response = await fetch(`${apiBaseUrl}/api/v1/auth/me`, {
-                            headers: authHeaders,
-                          })
-                          if (!response.ok) {
+                          try {
+                            await apiRequest<AuthResponse>("/api/v1/auth/me", { headers: authHeaders })
+                          } catch {
                             clearSession()
                           }
                         }
@@ -273,7 +251,7 @@ function App() {
                   </Button>
                   <a
                     className={buttonVariants({ variant: "outline" })}
-                    href={`${apiBaseUrl}/docs`}
+                    href={apiPath("/docs")}
                     target="_blank"
                     rel="noreferrer"
                   >
